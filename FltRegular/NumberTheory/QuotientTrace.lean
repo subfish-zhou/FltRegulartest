@@ -1,6 +1,10 @@
 import FltRegular.NumberTheory.AuxLemmas
 import Mathlib.RingTheory.IntegralClosure.IntegralRestrict
 import Mathlib.RingTheory.DedekindDomain.Dvr
+import Mathlib.RingTheory.IntegralClosure.IntegrallyClosed
+import Mathlib.LinearAlgebra.Dimension.DivisionRing
+import Mathlib.LinearAlgebra.FreeModule.PID
+import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
 /-!
 
 ## Main Definition & Result
@@ -11,17 +15,24 @@ import Mathlib.RingTheory.DedekindDomain.Dvr
 
 -/
 
+variable {R S : Type*} [CommRing R] [CommRing S] [Algebra R S]
+
 attribute [local instance] FractionRing.liftAlgebra FractionRing.isScalarTower_liftAlgebra
 
-section LocalRing
+open IsLocalRing FiniteDimensional Submodule Module
 
-variable {R S} [CommRing R] [CommRing S] [Algebra R S] [LocalRing R] [Module.Free R S] [Module.Finite R S]
-variable {p : Ideal R} [p.IsMaximal] [LocalRing R]
+section IsLocalRing
 
-open LocalRing FiniteDimensional
+variable [IsLocalRing R] [Module.Free R S] [Module.Finite R S]
+variable {p : Ideal R} [p.IsMaximal] [IsLocalRing R]
+
+open IsLocalRing FiniteDimensional
 
 local notation "p" => maximalIdeal R
-local notation "pS" => Ideal.map (algebraMap R S) (maximalIdeal R)
+local notation "pS" => Ideal.map (algebraMap R S) p
+
+variable [Module.Free R S] [Module.Finite R S]
+
 attribute [local instance] Ideal.Quotient.field
 
 theorem quotient_span_eq_top_iff_span_eq_top_of_localRing (s : Set S) :
@@ -103,29 +114,27 @@ lemma Algebra.trace_quotient_mk (x : S) :
   classical
   let ι := Module.Free.ChooseBasisIndex R S
   let b : Basis ι R S := Module.Free.chooseBasis R S
-  rw [trace_eq_matrix_trace b, trace_eq_matrix_trace (basisQuotientOfLocalRing b)]
-  show _ = (Ideal.Quotient.mk p).toAddMonoidHom _
-  rw [AddMonoidHom.map_trace]
+  rw [trace_eq_matrix_trace b, trace_eq_matrix_trace (basisQuotient b), AddMonoidHom.map_trace]
   congr 1
   ext i j
   simp only [leftMulMatrix_apply, coe_lmul_eq_mul, LinearMap.toMatrix_apply,
-    basisQuotientOfLocalRing_apply, LinearMap.mul_apply', RingHom.toAddMonoidHom_eq_coe,
+    basisQuotient_apply, LinearMap.mul_apply', RingHom.toAddMonoidHom_eq_coe,
     AddMonoidHom.mapMatrix_apply, AddMonoidHom.coe_coe, Matrix.map_apply, ← map_mul,
-    basisQuotientOfLocalRing_repr]
+    basisQuotient_repr]
 
-end LocalRing
+end IsLocalRing
 
 section IsDedekindDomain
 
 variable {R S} [CommRing R] [CommRing S] [Algebra R S] {p : Ideal R} [p.IsMaximal]
 variable {Rₚ Sₚ} [CommRing Rₚ] [CommRing Sₚ] [Algebra R Rₚ] [IsLocalization.AtPrime Rₚ p]
-variable [LocalRing Rₚ] [CommRing Sₚ] [Algebra S Sₚ] [Algebra R Sₚ] [Algebra Rₚ Sₚ]
+variable [IsLocalRing Rₚ] [CommRing Sₚ] [Algebra S Sₚ] [Algebra R Sₚ] [Algebra Rₚ Sₚ]
 variable [IsLocalization (Algebra.algebraMapSubmonoid S p.primeCompl) Sₚ]
 variable [IsScalarTower R S Sₚ] [IsScalarTower R Rₚ Sₚ]
 
 attribute [local instance] Ideal.Quotient.field
 
-open LocalRing
+open IsLocalRing
 
 variable (p Rₚ)
 
@@ -267,7 +276,7 @@ lemma Algebra.trace_quotient_eq_of_isDedekindDomain
   have e : Algebra.algebraMapSubmonoid S p.primeCompl ≤ S⁰ :=
     Submonoid.map_le_of_le_comap _ <| p.primeCompl_le_nonZeroDivisors.trans
       (nonZeroDivisors_le_comap_nonZeroDivisors_of_injective _
-        (NoZeroSMulDivisors.algebraMap_injective _ _))
+        (FaithfulSMul.algebraMap_injective _ _))
   haveI : IsDomain Sₚ := IsLocalization.isDomain_of_le_nonZeroDivisors S e
   haveI : NoZeroSMulDivisors Rₚ Sₚ := by
     rw [NoZeroSMulDivisors.iff_algebraMap_injective, RingHom.injective_iff_ker_eq_bot,

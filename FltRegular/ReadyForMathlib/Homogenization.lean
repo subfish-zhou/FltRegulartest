@@ -5,9 +5,10 @@ Authors: Alex J. Best
 
 ! This file was ported from Lean 3 source module ready_for_mathlib.homogenization
 -/
-import Mathlib.Data.Set.Finite
+import Mathlib.Data.Set.Finite.Basic
 import Mathlib.RingTheory.MvPolynomial.Homogeneous
 import Mathlib.RingTheory.Polynomial.Basic
+import Mathlib.Data.Finsupp.Weight
 import Mathlib.Order.SymmDiff
 
 /-!
@@ -216,7 +217,10 @@ theorem isHomogeneous_homogenization (i : ι) (p : MvPolynomial ι R) :
       ¬x + Finsupp.single i (p.totalDegree - x.sum fun (_x : ι) (m : ℕ) => m) = d := by
     intro x hx hh
     apply hd
-    rw [← hh, ← degree_eq_weight_one]
+    -- 修复：由于新版本中degree = weight (fun _ ↦ 1)，而旧版本的目标是weight 1
+    -- 需要使用weight_apply来展开weight函数的定义
+    rw [← hh]
+    simp only [weight_apply, Pi.one_apply, smul_eq_mul, mul_one, Finsupp.sum]
     change ((x + Finsupp.single i (p.totalDegree - x.sum fun _ m => m)).sum fun _ m => m) = _
     rw [aux hx]
   rw [← Finset.sum_coe_sort]
@@ -237,9 +241,11 @@ theorem homogenization_of_isHomogeneous (n : ℕ) (i : ι) (p : MvPolynomial ι 
       (fun j : ι →₀ ℕ => j + Finsupp.single i (p.totalDegree - j.sum fun (_x : ι) (m : ℕ) => m))
           x = x := by
     intro x hx
-    simp only [add_right_eq_self, Finsupp.single_eq_same, tsub_eq_zero_iff_le, Finsupp.single_tsub,
+    simp only [add_eq_left, Finsupp.single_eq_same, tsub_eq_zero_iff_le, Finsupp.single_tsub,
       Finsupp.single_le_iff]
-    rw [← hp (mem_support_iff.mp hx), ← degree_eq_weight_one]
+    -- 修复：直接使用weight的定义而不是通过degree_eq_weight_one转换
+    rw [← hp (mem_support_iff.mp hx)]
+    simp only [weight_apply, Pi.one_apply, smul_eq_mul, mul_one, Finsupp.sum]
     exact le_refl _
   rw [Finsupp.mapDomain_congr this]
   erw [Finsupp.mapDomain_id]
@@ -297,7 +303,7 @@ def leadingTerms (p : MvPolynomial ι R) : MvPolynomial ι R :=
 
 theorem leadingTerms_apply (p : MvPolynomial ι R) :
     p.leadingTerms =
-      ∑ d in p.support.filter fun d => ∑ i in d.support, d i = p.totalDegree,
+      ∑ d ∈ p.support.filter fun d => ∑ i ∈ d.support, d i = p.totalDegree,
         monomial d (coeff d p) :=
   homogeneousComponent_apply _ _
 
@@ -315,21 +321,25 @@ theorem leadingTerms_eq_self_iff_isHomogeneous (p : MvPolynomial ι R) :
     push_neg
     use h_w
     classical
-    rw [← degree_eq_weight_one] at h_h₂
+    -- 修复：直接使用weight的定义展开
+    simp only [weight_apply, Pi.one_apply, smul_eq_mul, mul_one, Finsupp.sum] at h_h₂
     change ¬(h_w.sum fun (_x : ι) (e : ℕ) => e) = p.totalDegree at h_h₂
-    simp only [h_h₁.symm, coeff_homogeneousComponent, exists_prop, and_true_iff, Ne,
+    -- 修复：使用现代的simp lemmas，避免过时的and_true_iff
+    simp only [h_h₁.symm, coeff_homogeneousComponent, exists_prop, and_true, Ne,
       not_false_iff, not_forall, ite_eq_left_iff]
-    convert h_h₂
+    -- 修复：使用exact而不是convert来避免复杂的类型转换
+    exact h_h₂
   · rw [leadingTerms_apply]
     rw [(_ :
-        (p.support.filter fun s : ι →₀ ℕ => ∑ i : ι in s.support, s i = p.totalDegree) =
+        (p.support.filter fun s : ι →₀ ℕ => ∑ i ∈ s.support, s i = p.totalDegree) =
           p.support)]
     · rw [support_sum_monomial_coeff p]
     · rw [Finset.filter_eq_self]
       intro s hs
       rw [mem_support_iff] at hs
-      rw [← h hs, ← degree_eq_weight_one]
-      rfl
+      -- 修复：使用weight的定义而不是通过degree_eq_weight_one
+      rw [← h hs]
+      simp only [weight_apply, Pi.one_apply, smul_eq_mul, mul_one, Finsupp.sum]
 
 @[simp]
 theorem leadingTerms_C (r : R) : (C r : MvPolynomial ι R).leadingTerms = C r := by
@@ -399,7 +409,7 @@ theorem add_ne_zero_of_ne_zero_of_support_disjoint (p q : MvPolynomial ι R) (hp
   exact this.left
 
 theorem support_sum_monomial_eq [DecidableEq R] (S : Finset (ι →₀ ℕ)) (f : (ι →₀ ℕ) → R) :
-    support (∑ v in S, monomial v (f v)) = S.filter fun v => f v ≠ 0 :=
+    support (∑ v ∈ S, monomial v (f v)) = S.filter fun v => f v ≠ 0 :=
   by
   letI := Classical.decEq ι
   induction' S using Finset.induction with s S hs hsi
@@ -411,13 +421,13 @@ theorem support_sum_monomial_eq [DecidableEq R] (S : Finset (ι →₀ ℕ)) (f 
     simp [hsi, hs]
 
 theorem support_sum_monomial_subset (S : Finset (ι →₀ ℕ)) (f : (ι →₀ ℕ) → R) :
-    support (∑ v in S, monomial v (f v)) ⊆ S := by
+    support (∑ v ∈ S, monomial v (f v)) ⊆ S := by
   classical
   rw [support_sum_monomial_eq]
   apply filter_subset
 
 theorem sum_monomial_ne_zero_of_exists_mem_ne_zero (S : Finset (ι →₀ ℕ)) (f : (ι →₀ ℕ) → R)
-    (h : ∃ (s : _) (_ : s ∈ S), f s ≠ 0) : ∑ s : ι →₀ ℕ in S, monomial s (f s) ≠ 0 := by
+    (h : ∃ (s : _) (_ : s ∈ S), f s ≠ 0) : ∑ s ∈ S, monomial s (f s) ≠ 0 := by
   classical
   simp only [← support_eq_empty, support_sum_monomial_eq, Ne]
   rcases h with ⟨s, h_S, h_s⟩
@@ -452,7 +462,7 @@ theorem leadingTerms_idempotent (p : MvPolynomial ι R) :
   exact isHomogeneous_leadingTerms p
 
 theorem coeff_leadingTerms (p : MvPolynomial ι R) (d : ι →₀ ℕ) :
-    coeff d p.leadingTerms = if ∑ i in d.support, d i = p.totalDegree then coeff d p else 0 :=
+    coeff d p.leadingTerms = if ∑ i ∈ d.support, d i = p.totalDegree then coeff d p else 0 :=
   coeff_homogeneousComponent _ _ _
 
 theorem support_homogeneousComponent (n : ℕ) (p : MvPolynomial ι R) :
@@ -484,7 +494,7 @@ theorem eq_leadingTerms_add (p : MvPolynomial ι R) (hp : p.totalDegree ≠ 0) :
     ∃ p_rest : MvPolynomial ι R, p = p.leadingTerms + p_rest ∧
     p_rest.totalDegree < p.totalDegree := by
   letI := Classical.decEq ι
-  exists ∑ v : ι →₀ ℕ in p.support \ p.leadingTerms.support, (monomial v) (coeff v p)
+  exists ∑ v ∈ p.support \ p.leadingTerms.support, (monomial v) (coeff v p)
   constructor
   · nth_rw 1 [p.leadingTerms.as_sum]
     have : ∀ (x : ι →₀ ℕ) (_ : x ∈ p.leadingTerms.support), x.support.sum x = p.totalDegree :=
@@ -766,7 +776,7 @@ section
 
 -- generalized version of the unprimed version
 theorem support_sum_monomial_subset' [DecidableEq ι] {α : Type _} (S : Finset α) (g : α → ι →₀ ℕ)
-    (f : α → R) : support (∑ v in S, monomial (g v) (f v)) ⊆ S.image g :=
+    (f : α → R) : support (∑ v ∈ S, monomial (g v) (f v)) ⊆ S.image g :=
   by
   letI := Classical.decEq α
   induction' S using Finset.induction with s S hs hsi
@@ -851,13 +861,14 @@ theorem prod_contains_no (i : ι) (P : Finset (MvPolynomial ι R))
       exact (degreeOf_eq_zero_iff _ _).2 (hp a (mem_cons_self _ _))
     · intro p hps m hmp
       apply hp p _ m hmp
-      simp only [hps, mem_cons, or_true_iff]
+      -- 修复：使用正确的成员关系证明
+      exact mem_cons_of_mem hps
 
 open scoped BigOperators
 
 theorem homogenization_prod {σ S : Type _} [CommRing S] [IsDomain S] (i : ι)
     (P : σ → MvPolynomial ι S) (L : Finset σ) :
-    (∏ l in L, P l).homogenization i = ∏ l in L, (P l).homogenization i := by
+    (∏ l ∈ L, P l).homogenization i = ∏ l ∈ L, (P l).homogenization i := by
   classical
   induction' L using Finset.induction with p S hS hSi
   · simp

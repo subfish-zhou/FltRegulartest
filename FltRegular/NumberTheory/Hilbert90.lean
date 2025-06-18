@@ -1,5 +1,4 @@
-
-import Mathlib.RingTheory.SimpleModule
+import Mathlib.RingTheory.SimpleModule.Basic
 import Mathlib.RingTheory.Valuation.ValuationRing
 import Mathlib.RingTheory.IntegralClosure.IntegralRestrict
 import Mathlib.GroupTheory.OrderOfElement
@@ -112,7 +111,7 @@ lemma is_cocycle : IsMulOneCocycle (cocycle hσ hη) := by
 
 lemma Hilbert90 : ∃ ε : L, η = ε / σ ε := by
   by_cases hone : orderOf σ = 1
-  · suffices finrank K L = 1 by
+  · suffices Module.finrank K L = 1 by
       obtain ⟨a, ha⟩ := mem_span_singleton.1 <| (eq_top_iff'.1 <|
         (finrank_eq_one_iff_of_nonzero _ one_ne_zero).1 this) η
       rw [← Algebra.algebraMap_eq_smul_one] at ha

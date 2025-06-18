@@ -1,5 +1,6 @@
 import Mathlib.NumberTheory.Cyclotomic.Gal
 import Mathlib.NumberTheory.NumberField.Units.Basic
+import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
 
 universe u
 
@@ -14,7 +15,7 @@ theorem PowerBasis.rat_hom_ext {S S' : Type _} [CommRing S] [hS : Algebra ℚ S]
   DFunLike.ext f g <| by
     convert DFunLike.ext_iff.mp (pb.algHom_ext (show f' pb.gen = g' pb.gen from h))
 
-variable (K : Type _) (p : ℕ+) [Field K] [CharZero K] [IsCyclotomicExtension {p} ℚ K]
+variable (K : Type _) (p : ℕ+) [Field K] [CharZero K] [IsCyclotomicExtension {p.val} ℚ K]
 
 variable {ζ : K} (hζ : IsPrimitiveRoot ζ p)
 
@@ -47,31 +48,33 @@ theorem galConj_zeta : galConj K p (zeta p ℚ K) = (zeta p ℚ K)⁻¹ :=
     pow_sub₀ _ (hζ.ne_zero p.ne_zero) p.pos, pow_one, hζ.pow_eq_one, one_mul]
 
 @[simp]
-theorem galConj_zeta_runity : galConj K p ζ = ζ⁻¹ :=
+theorem galConj_zeta_runity (hζ : IsPrimitiveRoot ζ p) : galConj K p ζ = ζ⁻¹ :=
   by
-  obtain ⟨t, _, rfl⟩ := (zeta_spec p ℚ K).eq_pow_of_pow_eq_one hζ.pow_eq_one p.pos
+  -- Use the fact that both ζ and zeta p ℚ K are primitive roots
+  have hζ_spec := zeta_spec p ℚ K
+  -- Both are primitive roots, so ζ can be expressed as a power of the canonical primitive root
+  obtain ⟨t, _ht, rfl⟩ := hζ_spec.eq_pow_of_pow_eq_one hζ.pow_eq_one
   rw [map_pow, galConj_zeta, inv_pow]
 
-theorem galConj_zeta_runity_pow (n : ℕ) : galConj K p (ζ ^ n) = ζ⁻¹ ^ n := by
+theorem galConj_zeta_runity_pow (hζ : IsPrimitiveRoot ζ p) (n : ℕ) : galConj K p (ζ ^ n) = ζ⁻¹ ^ n := by
   rw [map_pow, galConj_zeta_runity hζ]
 
 open scoped ComplexConjugate
 
-theorem conj_norm_one (x : ℂ) (h : Complex.abs x = 1) : conj x = x⁻¹ := by
-  rw [← Complex.abs_mul_exp_arg_mul_I x, h, Complex.ofReal_one, one_mul, ← Complex.exp_conj, ←
+theorem starRingEnd_norm_one (x : ℂ) (h : norm x = 1) : starRingEnd ℂ x = x⁻¹ := by
+  rw [← Complex.norm_mul_exp_arg_mul_I x, h, Complex.ofReal_one, one_mul, ← Complex.exp_conj, ←
     Complex.exp_neg, map_mul, Complex.conj_I, mul_neg, Complex.conj_ofReal]
 
 @[simp]
-theorem embedding_conj (x : K) (φ : K →+* ℂ) : conj (φ x) = φ (galConj K p x) := by
-  change RingHom.comp conj φ x = (φ.comp <| ↑(galConj K p)) x
+theorem embedding_conj (hζ : IsPrimitiveRoot ζ p) (x : K) (φ : K →+* ℂ) : starRingEnd ℂ (φ x) = φ (galConj K p x) := by
+  change RingHom.comp (starRingEnd ℂ) φ x = (φ.comp <| ↑(galConj K p)) x
   revert x
-  suffices φ (galConj K p ζ) = conj (φ ζ)
+  suffices φ (galConj K p ζ) = starRingEnd ℂ (φ ζ)
     by
-    rw [← Function.funext_iff]
-    rw [DFunLike.coe_fn_eq]
+    rw [← DFunLike.ext_iff]
     apply (hζ.powerBasis ℚ).rat_hom_ext
     exact this.symm
-  rw [conj_norm_one, galConj_zeta_runity hζ, map_inv₀]
+  rw [starRingEnd_norm_one, galConj_zeta_runity hζ, map_inv₀]
   exact Complex.norm_eq_one_of_pow_eq_one (by rw [← map_pow, hζ.pow_eq_one, map_one]) p.ne_zero
 
 variable (p)
@@ -107,11 +110,16 @@ theorem unitGalConj_spec (u : RRˣ) : galConj K p u = unitGalConj K p u := rfl
 variable {K}
 
 theorem unit_lemma_val_one (u : RRˣ) (φ : K →+* ℂ) :
-    Complex.abs (φ (u * (unitGalConj K p u)⁻¹)) = 1 := by
-  rw [map_mul, IsAbsoluteValue.abv_mul Complex.abs, ← zpow_neg_one, NumberField.Units.coe_zpow,
+    norm (φ (u * (unitGalConj K p u)⁻¹)) = 1 := by
+  rw [map_mul, IsAbsoluteValue.abv_mul norm, ← zpow_neg_one, NumberField.Units.coe_zpow,
     zpow_neg_one, map_inv₀, ← unitGalConj_spec,
-    ← embedding_conj <| zeta_spec p ℚ K]
-  simp only [map_inv₀, Complex.abs_conj]
-  rw [mul_inv_eq_one₀]
+    ← embedding_conj (zeta_spec p ℚ K)]
+  -- The goal is: ‖φ (u)‖ * ‖(starRingEnd ℂ (φ (u)))⁻¹‖ = 1
+  -- We need to use the fact that ‖conj z‖ = ‖z‖ and ‖z⁻¹‖ = ‖z‖⁻¹
+  have h1 : ‖(starRingEnd ℂ (φ (u : K)))⁻¹‖ = ‖φ (u : K)‖⁻¹ := by
+    -- starRingEnd ℂ is the conjugation, so we have conj(conj(φ u))⁻¹ = (conj(φ u))⁻¹
+    -- Since conj(conj(z)) = z, we have φ(u)⁻¹, and then ‖φ(u)⁻¹‖ = ‖φ(u)‖⁻¹
+    rw [← map_inv₀, Complex.norm_conj, norm_inv]
+  rw [h1, mul_inv_eq_one₀]
   intro h
   simp at h

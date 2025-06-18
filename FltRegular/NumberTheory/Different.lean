@@ -1,6 +1,5 @@
 import Mathlib.RingTheory.DedekindDomain.Different
 import Mathlib.RingTheory.DedekindDomain.Ideal
-import Mathlib.RingTheory.DedekindDomain.Different
 import Mathlib.RingTheory.Localization.FractionRing
 import FltRegular.NumberTheory.QuotientTrace
 import Mathlib.NumberTheory.KummerDedekind

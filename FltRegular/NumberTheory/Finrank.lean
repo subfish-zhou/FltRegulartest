@@ -1,8 +1,11 @@
 import Mathlib.LinearAlgebra.Dimension.Constructions
 import Mathlib.LinearAlgebra.Dimension.Finite
+import Mathlib.LinearAlgebra.Dimension.Finrank
+import Mathlib.LinearAlgebra.Dimension.Torsion.Basic
 import Mathlib.Algebra.Module.Torsion
 import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
 import Mathlib.LinearAlgebra.FreeModule.PID
+import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
 
 universe u v w
 section
@@ -13,8 +16,8 @@ variable (R M)
 
 open Cardinal in
 lemma FiniteDimensional.exists_finset_card_eq_finrank_and_linearIndependent :
-    ∃ s : Finset M, s.card = finrank R M ∧ LinearIndependent R ((↑) : s → M) := by
-  by_cases H : finrank R M = 0
+    ∃ s : Finset M, s.card = Module.finrank R M ∧ LinearIndependent R ((↑) : s → M) := by
+  by_cases H : Module.finrank R M = 0
   · use ∅
     simp only [Finset.card_empty, H, linearIndependent_empty_type, and_self]
   haveI := nonempty_linearIndependent_set R M
@@ -22,21 +25,28 @@ lemma FiniteDimensional.exists_finset_card_eq_finrank_and_linearIndependent :
   rw [Module.rank_def] at this
   obtain ⟨⟨s, hs⟩, hι : #s = _⟩ :=
     Cardinal.exists_eq_natCast_of_iSup_eq _ (Cardinal.bddAbove_range.{v, v} _) _ this
-  have : Finite s := Cardinal.lt_aleph0_iff_finite.mp (hι ▸ nat_lt_aleph0 (finrank R M))
+  have : Finite s := Cardinal.lt_aleph0_iff_finite.mp (hι ▸ nat_lt_aleph0 (Module.finrank R M))
   cases nonempty_fintype s
   exact ⟨s.toFinset,
-    Cardinal.natCast_injective (by rwa [Set.toFinset_card, ← Cardinal.mk_fintype]),
-    by convert hs <;> simp only [Set.mem_toFinset]⟩
+         by simpa [Set.toFinset_card, Cardinal.mk_fintype] using
+           (congrArg Cardinal.toNat hι),
+         by
+           simp only [LinearIndepOn, Function.comp_apply, id] at hs
+           show LinearIndependent R (Subtype.val : s.toFinset → M)
+           convert hs
+           · funext x; simp only [Set.mem_toFinset]; rfl
+           · funext x; simp only [Set.mem_toFinset]⟩
 
 variable {R M}
 
 variable [Nontrivial R] [StrongRankCondition R] [Module.Finite R M]
 
+omit [Nontrivial R] [StrongRankCondition R] [Module.Finite R M] in
 lemma LinearIndependent.finset_toSet (s : Finset M) : LinearIndependent R ((↑) : (↑s : Set M) → M) ↔
     LinearIndependent R ((↑) : s → M) := Iff.rfl
 
 lemma FiniteDimensional.finrank_add_finrank_quotient_le (N : Submodule R M) :
-    finrank R N + finrank R (M ⧸ N) ≤ finrank R M := by
+    Module.finrank R N + Module.finrank R (M ⧸ N) ≤ Module.finrank R M := by
   classical
   obtain ⟨s, hs, hs'⟩ := exists_finset_card_eq_finrank_and_linearIndependent R N
   obtain ⟨t, ht, ht'⟩ := exists_finset_card_eq_finrank_and_linearIndependent R (M ⧸ N)
@@ -54,7 +64,7 @@ lemma FiniteDimensional.finrank_add_finrank_quotient_le (N : Submodule R M) :
     ← s.card_image_of_injective Subtype.val_injective, ← Finset.card_union_of_disjoint]
   apply LinearIndependent.finset_card_le_finrank
   · rw [← LinearIndependent.finset_toSet, Finset.coe_union, Finset.coe_image, Finset.coe_image]
-    refine LinearIndependent.union ?_ ?_ H
+    refine LinearIndepOn.union ?_ ?_ H
     · rw [← linearIndependent_image Subtype.val_injective.injOn]
       exact hs'.map' N.subtype N.ker_subtype
     · rw [← linearIndependent_image hf.injective.injOn]
@@ -88,12 +98,15 @@ end
 variable {R : Type u} {M : Type v} [CommRing R] [Nontrivial R] [AddCommGroup M]
 variable [Module R M] [Module.Finite R M] (N : Submodule R M)
 
+omit [Nontrivial R] [Module.Finite R M] in
 lemma FiniteDimensional.finrank_quotient_of_le_torsion (hN : N ≤ Submodule.torsion R M) :
-    finrank R (M ⧸ N) = finrank R M := congr_arg Cardinal.toNat (rank_quotient_eq_of_le_torsion hN)
+    Module.finrank R (M ⧸ N) = Module.finrank R M :=
+  congr_arg Cardinal.toNat (rank_quotient_eq_of_le_torsion hN)
 
+omit [Nontrivial R] [Module.Finite R M] in
 lemma FiniteDimensional.finrank_map_of_le_torsion {M'} [AddCommGroup M'] [Module R M']
     (l : M →ₗ[R] M') [Module.Finite R N]
-    (hN : N ⊓ LinearMap.ker l ≤ Submodule.torsion R M) : finrank R (N.map l) = finrank R N := by
+    (hN : N ⊓ LinearMap.ker l ≤ Submodule.torsion R M) : Module.finrank R (N.map l) = Module.finrank R N := by
   conv_lhs => rw [← N.range_subtype, ← LinearMap.range_comp,
     ← (LinearMap.quotKerEquivRange (l.comp N.subtype)).finrank_eq]
   apply FiniteDimensional.finrank_quotient_of_le_torsion
@@ -101,9 +114,10 @@ lemma FiniteDimensional.finrank_map_of_le_torsion {M'} [AddCommGroup M'] [Module
   obtain ⟨a, ha⟩ := hN ⟨x.prop, hx⟩
   exact ⟨a, Subtype.val_injective ha⟩
 
+omit [Nontrivial R] in
 lemma FiniteDimensional.finrank_of_surjective_of_le_torsion {M'} [AddCommGroup M'] [Module R M']
     (l : M →ₗ[R] M') (hl : Function.Surjective l)
-    (hl' : LinearMap.ker l ≤ Submodule.torsion R M) : finrank R M' = finrank R M := by
+    (hl' : LinearMap.ker l ≤ Submodule.torsion R M) : Module.finrank R M' = Module.finrank R M := by
   have := FiniteDimensional.finrank_map_of_le_torsion ⊤ l (inf_le_right.trans hl')
   rw [← LinearMap.range_eq_map l, LinearMap.range_eq_top.mpr hl] at this
   simpa only [finrank_top] using this
@@ -111,7 +125,7 @@ lemma FiniteDimensional.finrank_of_surjective_of_le_torsion {M'} [AddCommGroup M
 lemma FiniteDimensional.finrank_add_finrank_quotient_of_free [IsDomain R] [IsPrincipalIdealRing R]
     [Module.Free R M]
     (N : Submodule R M) :
-    finrank R N + finrank R (M ⧸ N) = finrank R M := by
+    Module.finrank R N + Module.finrank R (M ⧸ N) = Module.finrank R M := by
   apply (finrank_add_finrank_quotient_le N).antisymm
   let B := Submodule.smithNormalForm (Module.Free.chooseBasis R M) N
   rw [← tsub_le_iff_left]
@@ -146,7 +160,7 @@ instance [IsDomain R] [IsPrincipalIdealRing R] : Module.Free R (M ⧸ Submodule.
 
 lemma FiniteDimensional.finrank_add_finrank_quotient [IsDomain R] [IsPrincipalIdealRing R]
     (N : Submodule R M) :
-    finrank R N + finrank R (M ⧸ N) = finrank R M := by
+    Module.finrank R N + Module.finrank R (M ⧸ N) = Module.finrank R M := by
   have : IsNoetherian R M := isNoetherian_of_isNoetherianRing_of_finite R M
   have := FiniteDimensional.finrank_add_finrank_quotient_of_free (N.map (Submodule.torsion R M).mkQ)
   rw [FiniteDimensional.finrank_quotient_of_le_torsion _ le_rfl,
@@ -168,17 +182,17 @@ lemma FiniteDimensional.finrank_add_finrank_quotient [IsDomain R] [IsPrincipalId
 
 lemma FiniteDimensional.finrank_quotient [IsDomain R] [IsPrincipalIdealRing R]
     (N : Submodule R M) :
-    finrank R (M ⧸ N) = finrank R M - finrank R N := by
+    Module.finrank R (M ⧸ N) = Module.finrank R M - Module.finrank R N := by
   rw [← FiniteDimensional.finrank_add_finrank_quotient N, add_tsub_cancel_left]
 
 lemma FiniteDimensional.finrank_quotient' [IsDomain R] [IsPrincipalIdealRing R]
     {S} [Ring S] [SMul R S] [Module S M] [IsScalarTower R S M]
     (N : Submodule S M) :
-    finrank R (M ⧸ N) = finrank R M - finrank R N :=
+    Module.finrank R (M ⧸ N) = Module.finrank R M - Module.finrank R N :=
   FiniteDimensional.finrank_quotient (N.restrictScalars R)
 
 lemma FiniteDimensional.exists_of_finrank_lt [IsDomain R] [IsPrincipalIdealRing R]
-    (N : Submodule R M) (h : finrank R N < finrank R M) :
+    (N : Submodule R M) (h : Module.finrank R N < Module.finrank R M) :
     ∃ m : M, ∀ r : R, r ≠ 0 → r • m ∉ N := by
   obtain ⟨s, hs, hs'⟩ :=
     FiniteDimensional.exists_finset_card_eq_finrank_and_linearIndependent R (M ⧸ N)
@@ -188,6 +202,6 @@ lemma FiniteDimensional.exists_of_finrank_lt [IsDomain R] [IsPrincipalIdealRing 
   use v
   intro r hr
   have := linearIndependent_iff.mp hs' (Finsupp.single ⟨_, hv⟩ r)
-  rw [Finsupp.total_single, Finsupp.single_eq_zero, ← LinearMap.map_smul,
+  rw [Finsupp.linearCombination_single, Finsupp.single_eq_zero, ← LinearMap.map_smul,
     Submodule.mkQ_apply, Submodule.Quotient.mk_eq_zero] at this
   exact mt this hr

@@ -1,6 +1,7 @@
 import FltRegular.NumberTheory.GaloisPrime
 import Mathlib.NumberTheory.KummerDedekind
 import FltRegular.NumberTheory.Different
+import Mathlib.RingTheory.DedekindDomain.Ideal
 /-!
 # Unramified extensions
 

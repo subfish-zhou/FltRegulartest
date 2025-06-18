@@ -6,12 +6,14 @@ Authors: Alex J. Best
 ! This file was ported from Lean 3 source module number_theory.cyclotomic.cyclotomic_units
 -/
 import Mathlib.RingTheory.RootsOfUnity.Basic
+import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
 
 noncomputable section
 
 open scoped BigOperators nonZeroDivisors
 
 open Polynomial Finset Module Units Submodule
+open Classical
 
 universe u v w z
 
@@ -44,7 +46,7 @@ theorem associated_one_sub_pow_primitive_root_of_coprime {n j k : ℕ} {ζ : A}
     exact (this hj).symm.trans (this hk)
   clear k j hk hj
   intro j hj
-  refine associated_of_dvd_dvd ⟨∑ i in range j, ζ ^ i, by rw [← geom_sum_mul_neg, mul_comm]⟩ ?_
+  refine associated_of_dvd_dvd ⟨∑ i ∈ range j, ζ ^ i, by rw [← geom_sum_mul_neg, mul_comm]⟩ ?_
   -- is there an easier way to do this?
   rcases eq_or_ne n 0 with (rfl | hn')
   · simp [j.coprime_zero_right.mp hj]
@@ -52,13 +54,13 @@ theorem associated_one_sub_pow_primitive_root_of_coprime {n j k : ℕ} {ζ : A}
   · simp [IsPrimitiveRoot.one_right_iff.mp hζ]
   replace hn := Nat.one_lt_of_ne n hn' hn
   obtain ⟨m, hm⟩ := Nat.exists_mul_emod_eq_one_of_coprime hj hn
-  use ∑ i in range m, (ζ ^ j) ^ i
+  use ∑ i ∈ range m, (ζ ^ j) ^ i
   have : ζ = (ζ ^ j) ^ m := by rw [← pow_mul, ←pow_mod_orderOf, ← hζ.eq_orderOf, hm, pow_one]
   nth_rw 1 [this]
   rw [← geom_sum_mul_neg, mul_comm]
 
 theorem IsPrimitiveRoot.sum_pow_unit {n k : ℕ} {ζ : A} (hn : 2 ≤ n) (hk : k.Coprime n)
-    (hζ : IsPrimitiveRoot ζ n) : IsUnit (∑ i : ℕ in range k, ζ ^ (i : ℕ)) := by
+    (hζ : IsPrimitiveRoot ζ n) : IsUnit (∑ i ∈ range k, ζ ^ (i : ℕ)) := by
   have h1 : (1 : ℕ).Coprime n := Nat.coprime_one_left n
   have := associated_one_sub_pow_primitive_root_of_coprime _ hζ hk h1
   simp at this
@@ -100,7 +102,7 @@ theorem IsPrimitiveRoot.zeta_pow_sub_eq_unit_zeta_sub_one {p i j : ℕ} {ζ : A}
     rw [hj]
     simp only [tsub_zero]
     exact hi
-  have h3 : IsUnit (-ζ ^ j * ∑ k : ℕ in range (i - j), ζ ^ (k : ℕ)) := by
+  have h3 : IsUnit (-ζ ^ j * ∑ k ∈ range (i - j), ζ ^ (k : ℕ)) := by
     apply IsUnit.mul _ (IsPrimitiveRoot.sum_pow_unit _ hn hic hζ); apply IsUnit.neg
     apply IsUnit.pow; apply hζ.isUnit hp.pos
   obtain ⟨v, hv⟩ := h3
@@ -128,7 +130,7 @@ theorem IsPrimitiveRoot.zeta_pow_sub_eq_unit_zeta_sub_one {p i j : ℕ} {ζ : A}
     rw [hii]
     simp only [tsub_zero]
     exact hj
-  have h3 : IsUnit (ζ ^ i * ∑ k : ℕ in range (j - i), ζ ^ (k : ℕ)) := by
+  have h3 : IsUnit (ζ ^ i * ∑ k ∈ range (j - i), ζ ^ (k : ℕ)) := by
     apply IsUnit.mul _ (IsPrimitiveRoot.sum_pow_unit _ hn hjc hζ); apply IsUnit.pow
     apply hζ.isUnit hp.pos
   obtain ⟨v, hv⟩ := h3
@@ -141,11 +143,13 @@ theorem IsPrimitiveRoot.zeta_pow_sub_eq_unit_zeta_sub_one {p i j : ℕ} {ζ : A}
 end CyclotomicUnit
 
 lemma IsPrimitiveRoot.associated_sub_one {A : Type*} [CommRing A] [IsDomain A]
-    {p : ℕ} (hp : p.Prime) {ζ : A} (hζ : IsPrimitiveRoot ζ p) {η₁ : A} (hη₁ : η₁ ∈ nthRootsFinset p A)
-    {η₂ : A} (hη₂ : η₂ ∈ nthRootsFinset p A) (e : η₁ ≠ η₂) :
+    {p : ℕ} (hp : p.Prime) {ζ : A} (hζ : IsPrimitiveRoot ζ p) {η₁ : A} (hη₁ : η₁ ∈ nthRootsFinset p (1 : A))
+    {η₂ : A} (hη₂ : η₂ ∈ nthRootsFinset p (1 : A)) (e : η₁ ≠ η₂) :
     Associated (ζ - 1) (η₁ - η₂) := by
-  obtain ⟨i, ⟨hi, rfl⟩⟩ := hζ.eq_pow_of_pow_eq_one ((Polynomial.mem_nthRootsFinset hp.pos).1 hη₁) hp.pos
-  obtain ⟨j, ⟨hj, rfl⟩⟩ := hζ.eq_pow_of_pow_eq_one ((Polynomial.mem_nthRootsFinset hp.pos).1 hη₂) hp.pos
+  haveI : NeZero p := ⟨hp.ne_zero⟩
+  rw [Polynomial.mem_nthRootsFinset hp.pos (1 : A)] at hη₁ hη₂
+  obtain ⟨i, hi, rfl⟩ := hζ.eq_pow_of_pow_eq_one hη₁
+  obtain ⟨j, hj, rfl⟩ := hζ.eq_pow_of_pow_eq_one hη₂
   have : i ≠ j := ne_of_apply_ne _ e
   obtain ⟨u, h⟩ := CyclotomicUnit.IsPrimitiveRoot.zeta_pow_sub_eq_unit_zeta_sub_one A
     hp.two_le hp hi hj this hζ

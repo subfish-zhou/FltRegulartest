@@ -1,6 +1,9 @@
-import FltRegular.NumberTheory.AuxLemmas
+-- import FltRegular.NumberTheory.AuxLemmas
 import Mathlib.RingTheory.IntegralClosure.IntegralRestrict
 import Mathlib.Data.Set.Card
+import Mathlib.RingTheory.Ideal.Maps
+import Mathlib.NumberTheory.RamificationInertia.Basic
+import Mathlib.RingTheory.DedekindDomain.Ideal
 
 /-!
 # Galois action on primes
@@ -26,11 +29,11 @@ variable (S)
 def primesOver (p : Ideal R) : Set (Ideal S) :=
   { P : Ideal S | P.IsPrime ∧ P.comap (algebraMap R S) = p }
 
-open scoped Classical in
-noncomputable
-def primesOverFinset [IsDedekindDomain S] (p : Ideal R) :
-    Finset (Ideal S) :=
-  (factors (p.map (algebraMap R S))).toFinset
+-- open scoped Classical in
+-- noncomputable
+-- def primesOverFinset [IsDedekindDomain S] (p : Ideal R) :
+--     Finset (Ideal S) :=
+--   (factors (p.map (algebraMap R S))).toFinset
 
 variable {S}
 
@@ -42,26 +45,26 @@ lemma primesOver_bot [Nontrivial R] [IsDomain S] [NoZeroSMulDivisors R S]
   refine ⟨fun H ↦ Ideal.eq_bot_of_comap_eq_bot H.2, ?_⟩
   rintro rfl
   rw [← RingHom.ker_eq_comap_bot, ← RingHom.injective_iff_ker_eq_bot]
-  exact ⟨Ideal.bot_prime, NoZeroSMulDivisors.algebraMap_injective _ _⟩
+  exact ⟨Ideal.bot_prime, FaithfulSMul.algebraMap_injective _ _⟩
 
 variable (S)
 
-lemma primesOverFinset_bot [IsDedekindDomain S] : primesOverFinset S (⊥ : Ideal R) = ∅ := by
-  classical
-  rw [primesOverFinset, Ideal.map_bot, ← Ideal.zero_eq_bot, factors_zero]
-  rfl
+-- lemma primesOverFinset_bot [IsDedekindDomain S] : primesOverFinset S (⊥ : Ideal R) = ∅ := by
+--   classical
+--   rw [primesOverFinset, Ideal.map_bot, ← Ideal.zero_eq_bot, factors_zero]
+--   rfl
 
-lemma coe_primesOverFinset [Ring.DimensionLEOne R] [IsDedekindDomain S]
-    [NoZeroSMulDivisors R S] (p : Ideal R) (hp : p ≠ ⊥) [hp' : p.IsPrime] :
-    primesOverFinset S p = primesOver S p := by
-  classical
-  ext P
-  have : p.map (algebraMap R S) ≠ ⊥ := by
-    rwa [Ne, Ideal.map_eq_bot_iff_of_injective (NoZeroSMulDivisors.algebraMap_injective R S)]
-  simp only [Finset.mem_coe, Multiset.mem_toFinset, Ideal.mem_normalizedFactors_iff this,
-    factors_eq_normalizedFactors, Ideal.map_le_iff_le_comap, primesOverFinset]
-  exact ⟨fun H ↦ ⟨H.1, ((hp'.isMaximal hp).eq_of_le (H.1.comap _).ne_top H.2).symm⟩,
-    fun H ↦ ⟨H.1, H.2.ge⟩⟩
+-- lemma coe_primesOverFinset [Ring.DimensionLEOne R] [IsDedekindDomain S]
+--     [NoZeroSMulDivisors R S] (p : Ideal R) (hp : p ≠ ⊥) [hp' : p.IsPrime] :
+--     primesOverFinset S p = primesOver S p := by
+--   classical
+--   ext P
+--   have : p.map (algebraMap R S) ≠ ⊥ := by
+--     rwa [Ne, Ideal.map_eq_bot_iff_of_injective (NoZeroSMulDivisors.algebraMap_injective R S)]
+--   simp only [Finset.mem_coe, Multiset.mem_toFinset, Ideal.mem_normalizedFactors_iff this,
+--     factors_eq_normalizedFactors, Ideal.map_le_iff_le_comap, primesOverFinset]
+--   exact ⟨fun H ↦ ⟨H.1, ((hp'.isMaximal hp).eq_of_le (H.1.comap _).ne_top H.2).symm⟩,
+--     fun H ↦ ⟨H.1, H.2.ge⟩⟩
 
 lemma primesOver_eq_empty_of_not_isPrime (p : Ideal R) (hp : ¬ p.IsPrime) :
     primesOver S p = ∅ := by
@@ -69,21 +72,21 @@ lemma primesOver_eq_empty_of_not_isPrime (p : Ideal R) (hp : ¬ p.IsPrime) :
   rintro ⟨P, hP⟩
   exact hp (hP.2 ▸ hP.1.comap _)
 
-lemma primesOver_finite [Ring.DimensionLEOne R] [IsDedekindDomain S] [NoZeroSMulDivisors R S]
-    (p : Ideal R) (hp : p ≠ ⊥) : (primesOver S p).Finite := by
-  by_cases h: p.IsPrime
-  · classical
-    rw [← coe_primesOverFinset S p hp]
-    exact Finset.finite_toSet _
-  · rw [primesOver_eq_empty_of_not_isPrime S p h]
-    exact Set.finite_empty
+-- lemma primesOver_finite [Ring.DimensionLEOne R] [IsDedekindDomain S] [NoZeroSMulDivisors R S]
+--     (p : Ideal R) (hp : p ≠ ⊥) : (primesOver S p).Finite := by
+--   by_cases h: p.IsPrime
+--   · classical
+--     rw [← coe_primesOverFinset S p hp]
+--     exact Finset.finite_toSet _
+--   · rw [primesOver_eq_empty_of_not_isPrime S p h]
+--     exact Set.finite_empty
 
 lemma primesOver_nonempty [IsDomain S] [NoZeroSMulDivisors R S] [Algebra.IsIntegral R S]
     (p : Ideal R) [p.IsPrime] : (primesOver S p).Nonempty := by
   have := Ideal.bot_prime (α := S)
   obtain ⟨Q, _, hQ⟩ := Ideal.exists_ideal_over_prime_of_isIntegral p ⊥
     (by rw [Ideal.comap_bot_of_injective _
-      (NoZeroSMulDivisors.algebraMap_injective R S)]; exact bot_le)
+      (FaithfulSMul.algebraMap_injective R S)]; exact bot_le)
   exact ⟨Q, hQ⟩
 
 variable {S}
@@ -93,7 +96,7 @@ lemma ne_bot_of_mem_primesOver [IsDedekindDomain S] [NoZeroSMulDivisors R S] {p 
     P ≠ ⊥ :=
   fun hP' ↦ hp <| by
     rw [← hP.2, hP', ← RingHom.ker_eq_comap_bot, ← RingHom.injective_iff_ker_eq_bot]
-    exact NoZeroSMulDivisors.algebraMap_injective R S
+    exact FaithfulSMul.algebraMap_injective R S
 
 lemma isMaximal_of_mem_primesOver [IsDedekindDomain S] [NoZeroSMulDivisors R S] {p : Ideal R}
     (hp : p ≠ ⊥) {P : Ideal S} (hP : P ∈ primesOver S p) :

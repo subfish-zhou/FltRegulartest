@@ -1,15 +1,8 @@
-import Mathlib.RingTheory.DedekindDomain.Ideal
 import Mathlib.RingTheory.DedekindDomain.Dvr
-import Mathlib.RingTheory.Localization.NormTrace
-import Mathlib.RingTheory.Localization.LocalizationLocalization
-import Mathlib.RingTheory.Nakayama
-import Mathlib.RingTheory.LocalProperties
 import Mathlib.RingTheory.IntegralClosure.IntegralRestrict
-import Mathlib.RingTheory.IntegralClosure.IntegrallyClosed
-import Mathlib.NumberTheory.RamificationInertia
-import FltRegular.NumberTheory.AuxLemmas
-import Mathlib.LinearAlgebra.FreeModule.PID
-import Mathlib.RingTheory.DedekindDomain.IntegralClosure
+
+set_option linter.unusedSectionVars false
+
 /-!
 
 Generalizes `Ideal.spanNorm` in `Mathlib/RingTheory/Ideal/Norm.lean` to non-free extensions.
@@ -114,7 +107,7 @@ theorem spanIntNorm_localization (I : Ideal S) (M : Submonoid R) (hM : M ≤ R�
   let g : Sₘ →+* L := IsLocalization.map _ (M := Algebra.algebraMapSubmonoid S M) (T := S⁰)
       (RingHom.id S) (Submonoid.map_le_of_le_comap _ <| hM.trans
       (nonZeroDivisors_le_comap_nonZeroDivisors_of_injective _
-        (NoZeroSMulDivisors.algebraMap_injective _ _)))
+        (FaithfulSMul.algebraMap_injective _ _)))
   letI := g.toAlgebra
   have : IsScalarTower S Sₘ L := IsScalarTower.of_algebraMap_eq'
     (by rw [RingHom.algebraMap_toAlgebra, IsLocalization.map_comp, RingHomCompTriple.comp_eq])
@@ -139,7 +132,7 @@ theorem spanIntNorm_localization (I : Ideal S) (M : Submonoid R) (hM : M ≤ R�
       IsLocalization.mem_map_algebraMap_iff M Rₘ, Prod.exists] at ha' ⊢
     obtain ⟨⟨a, ha⟩, ⟨_, ⟨s, hs, rfl⟩⟩, has⟩ := ha'
     refine ⟨⟨Algebra.intNorm R S a, intNorm_mem_spanIntNorm _ _ ha⟩,
-      ⟨s ^ FiniteDimensional.finrank K L, pow_mem hs _⟩, ?_⟩
+      ⟨s ^ Module.finrank K L, pow_mem hs _⟩, ?_⟩
     simp only [Submodule.coe_mk, Subtype.coe_mk, map_pow] at has ⊢
     apply_fun algebraMap _ L at has
     apply_fun Algebra.norm K at has
@@ -195,7 +188,7 @@ lemma NoZeroSMulDivisors_of_isLocalization (R S Rₚ Sₚ) [CommRing R] [CommRin
   have e : Algebra.algebraMapSubmonoid S M ≤ S⁰ :=
     Submonoid.map_le_of_le_comap _ <| hM.trans
       (nonZeroDivisors_le_comap_nonZeroDivisors_of_injective _
-        (NoZeroSMulDivisors.algebraMap_injective _ _))
+        (FaithfulSMul.algebraMap_injective _ _))
   haveI : IsDomain Sₚ := IsLocalization.isDomain_of_le_nonZeroDivisors S e
   have : algebraMap Rₚ Sₚ = IsLocalization.map (T := Algebra.algebraMapSubmonoid S M) Sₚ
     (algebraMap R S) (Submonoid.le_comap_map M) := by
@@ -209,7 +202,7 @@ lemma NoZeroSMulDivisors_of_isLocalization (R S Rₚ Sₚ) [CommRing R] [CommRin
     Subtype.exists, exists_prop, this] at hx ⊢
   obtain ⟨_, ⟨a, ha, rfl⟩, H⟩ := hx
   simp only [← _root_.map_mul,
-    (injective_iff_map_eq_zero' _).mp (NoZeroSMulDivisors.algebraMap_injective R S)] at H
+    (injective_iff_map_eq_zero' _).mp (FaithfulSMul.algebraMap_injective R S)] at H
   refine ⟨a, ha, H⟩
 
 theorem IsLocalization.AtPrime.PID_of_dedekind_domain {A} [CommRing A]
@@ -218,8 +211,8 @@ theorem IsLocalization.AtPrime.PID_of_dedekind_domain {A} [CommRing A]
     [Algebra A Aₘ] [IsLocalization.AtPrime Aₘ P] : IsPrincipalIdealRing Aₘ := by
   letI : IsNoetherianRing Aₘ :=
     IsLocalization.isNoetherianRing P.primeCompl _ IsDedekindRing.toIsNoetherian
-  letI : LocalRing Aₘ := IsLocalization.AtPrime.localRing Aₘ P
-  exact ((tfae_of_isNoetherianRing_of_localRing_of_isDomain Aₘ).out 2 0).mp
+  letI : IsLocalRing Aₘ := IsLocalization.AtPrime.isLocalRing Aₘ P
+  exact ((tfae_of_isNoetherianRing_of_isLocalRing_of_isDomain Aₘ).out 2 0).mp
     (IsLocalization.AtPrime.isDedekindDomain A P _)
 
 -- /-- Multiplicativity of `Ideal.spanIntNorm`. simp-normal form is `map_mul (Ideal.relNorm R)`. -/
@@ -288,7 +281,7 @@ theorem IsLocalization.AtPrime.PID_of_dedekind_domain {A} [CommRing A]
 /-- Multiplicativity of `Ideal.spanIntNorm`. simp-normal form is `map_mul (Ideal.relNorm R)`. -/
 theorem spanIntNorm_map (I : Ideal R) :
     spanIntNorm R (I.map (algebraMap R S)) =
-      I ^ (FiniteDimensional.finrank (FractionRing R) (FractionRing S)) := by
+      I ^ (Module.finrank (FractionRing R) (FractionRing S)) := by
   classical
   nontriviality R
   nontriviality S
@@ -302,12 +295,12 @@ theorem spanIntNorm_map (I : Ideal R) :
     IsScalarTower.of_algebraMap_eq (fun x =>
       (IsLocalization.map_eq (T := P') (Q := Localization P') P.primeCompl.le_comap_map x).symm)
   have h : P' ≤ S⁰ :=
-    map_le_nonZeroDivisors_of_injective _ (NoZeroSMulDivisors.algebraMap_injective _ _)
+    map_le_nonZeroDivisors_of_injective _ (FaithfulSMul.algebraMap_injective _ _)
       P.primeCompl_le_nonZeroDivisors
   haveI : IsDomain Sₚ := IsLocalization.isDomain_localization h
   haveI : IsDedekindDomain Sₚ := IsLocalization.isDedekindDomain S h _
   haveI : IsPrincipalIdealRing Rₚ := IsLocalization.AtPrime.PID_of_dedekind_domain P Rₚ
-  haveI := isIntegrallyClosed_of_isLocalization P.primeCompl P.primeCompl_le_nonZeroDivisors Rₚ
+  haveI : IsIntegrallyClosed Rₚ := inferInstance -- localization of integrally closed domain
   haveI := NoZeroSMulDivisors_of_isLocalization R S Rₚ Sₚ _ P.primeCompl_le_nonZeroDivisors
   haveI := Module.Finite_of_isLocalization R S Rₚ Sₚ P.primeCompl
   let K := FractionRing R
@@ -335,18 +328,16 @@ theorem spanIntNorm_map (I : Ideal R) :
   haveI : IsIntegralClosure Sₚ Rₚ L := IsIntegralClosure.of_isIntegrallyClosed _ _ _
   haveI : Algebra.IsSeparable (FractionRing Rₚ) (FractionRing Sₚ) := by
     apply Algebra.IsSeparable.of_equiv_equiv
-      (FractionRing.algEquiv Rₚ (FractionRing R)).symm.toRingEquiv
-      (FractionRing.algEquiv Sₚ (FractionRing S)).symm.toRingEquiv
+      (FractionRing.algEquiv Rₚ K).symm.toRingEquiv
+      (FractionRing.algEquiv Sₚ L).symm.toRingEquiv
     apply IsLocalization.ringHom_ext R⁰
     ext
     simp only [AlgEquiv.toRingEquiv_eq_coe, RingHom.coe_comp,
       RingHom.coe_coe, Function.comp_apply, ← IsScalarTower.algebraMap_apply]
-    simp only [IsScalarTower.algebraMap_apply R Rₚ (FractionRing R), AlgEquiv.coe_ringEquiv,
+    simp only [IsScalarTower.algebraMap_apply R Rₚ K, AlgEquiv.coe_ringEquiv,
       AlgEquiv.commutes, IsScalarTower.algebraMap_apply R S L,
       IsScalarTower.algebraMap_apply S Sₚ L]
     simp only [← IsScalarTower.algebraMap_apply]
-    rw [IsScalarTower.algebraMap_apply R Rₚ (FractionRing Rₚ), ← IsScalarTower.algebraMap_apply Rₚ,
-      ← IsScalarTower.algebraMap_apply]
   haveI : Module.Free Rₚ Sₚ := Module.free_of_finite_type_torsion_free'
   simp only [Ideal.map_mul, ← spanIntNorm_localization (R := R) (S := S)
     (Rₘ := Localization.AtPrime P) (Sₘ := Localization P') _ _ P.primeCompl_le_nonZeroDivisors]

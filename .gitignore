@@ -1,3 +1,8 @@
 /build
 /lakefile.olean
 /lake-packages/*
+.lake/
+v4_10_0/
+v4_21_0rc3/
+.vscode/
+.github/

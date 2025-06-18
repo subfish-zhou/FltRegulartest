@@ -1,8 +1,10 @@
-import Mathlib.NumberTheory.RamificationInertia
+import Mathlib.NumberTheory.RamificationInertia.Basic
+import Mathlib.NumberTheory.RamificationInertia.Galois
 import Mathlib.Algebra.Polynomial.Taylor
 import Mathlib.RingTheory.Valuation.ValuationRing
 import Mathlib.FieldTheory.Separable
 import Mathlib.RingTheory.Trace.Defs
+import Mathlib.Algebra.Group.Irreducible.Lemmas
 
 /-!
 
@@ -11,9 +13,9 @@ This file contains lemmas that should go somewhere in a file in mathlib.
 -/
 open BigOperators UniqueFactorizationMonoid
 
--- Mathlib/RingTheory/Ideal/Operations.lean
-lemma Ideal.comap_coe {R S F : Type*} [Semiring R] [Semiring S] [FunLike F R S] [RingHomClass F R S]
-  (f : F) (I : Ideal S) : I.comap (f : R →+* S) = I.comap f := rfl
+-- Mathlib.RingTheory.Ideal.Maps
+-- lemma Ideal.comap_coe {R S F : Type*} [Semiring R] [Semiring S] [FunLike F R S] [RingHomClass F R S]
+--   (f : F) (I : Ideal S) : I.comap (f : R →+* S) = I.comap f := rfl
 
 -- Mathlib/RingTheory/IntegralClosure.lean
 instance isIntegralClosure_self {R S : Type*} [CommRing R] [CommRing S] [Algebra R S]
@@ -25,43 +27,45 @@ section RamificationInertia
 
 variable {R S₁ S₂} [CommRing R] [CommRing S₁] [CommRing S₂] [Algebra R S₁] [Algebra R S₂]
 
-lemma Ideal.ramificationIdx_comap_eq (e : S₁ ≃ₐ[R] S₂) (p : Ideal R) (P : Ideal S₂) :
-    Ideal.ramificationIdx (algebraMap R S₁) p (P.comap e) =
-      Ideal.ramificationIdx (algebraMap R S₂) p P := by
-  show sSup _ = sSup _
-  congr
-  ext n
-  simp only [Set.mem_setOf_eq, Ideal.map_le_iff_le_comap]
-  rw [← Ideal.comap_coe e, ← e.toRingEquiv_toRingHom, Ideal.comap_coe,
-    ← RingEquiv.symm_symm (e : S₁ ≃+* S₂), ← Ideal.map_comap_of_equiv, ← Ideal.map_pow,
-    Ideal.map_comap_of_equiv, ← Ideal.comap_coe (RingEquiv.symm _), Ideal.comap_comap,
-    RingEquiv.symm_symm, e.toRingEquiv_toRingHom, ← e.toAlgHom_toRingHom, AlgHom.comp_algebraMap]
+-- Mathlib.NumberTheory.RamificationInertia.Basic
+-- lemma Ideal.ramificationIdx_comap_eq (e : S₁ ≃ₐ[R] S₂) (p : Ideal R) (P : Ideal S₂) :
+--     Ideal.ramificationIdx (algebraMap R S₁) p (P.comap e) =
+--       Ideal.ramificationIdx (algebraMap R S₂) p P := by
+--   show sSup _ = sSup _
+--   congr
+--   ext n
+--   simp only [Set.mem_setOf_eq, Ideal.map_le_iff_le_comap]
+--   rw [← Ideal.comap_coe e, ← e.toRingEquiv_toRingHom, Ideal.comap_coe,
+--     ← RingEquiv.symm_symm (e : S₁ ≃+* S₂), ← Ideal.map_comap_of_equiv, ← Ideal.map_pow,
+--     Ideal.map_comap_of_equiv, ← Ideal.comap_coe (RingEquiv.symm _), Ideal.comap_comap,
+--     RingEquiv.symm_symm, e.toRingEquiv_toRingHom, ← e.toAlgHom_toRingHom, AlgHom.comp_algebraMap]
 
-lemma Ideal.inertiaDeg_comap_eq (e : S₁ ≃ₐ[R] S₂) (p : Ideal R) (P : Ideal S₂) [p.IsMaximal] :
-    Ideal.inertiaDeg (algebraMap R S₁) p (P.comap e) =
-      Ideal.inertiaDeg (algebraMap R S₂) p P := by
-  delta Ideal.inertiaDeg
-  have : (P.comap e).comap (algebraMap R S₁) = p ↔ P.comap (algebraMap R S₂) = p := by
-    rw [← Ideal.comap_coe e, Ideal.comap_comap, ← e.toAlgHom_toRingHom, AlgHom.comp_algebraMap]
-  split
-  swap
-  · rw [dif_neg]; rwa [← this]
-  rw [dif_pos (this.mp ‹_›)]
-  apply (config := { allowSynthFailures := true }) LinearEquiv.finrank_eq
-  have E := quotientEquivAlg (R₁ := R) (P.comap e) P e
-    (Ideal.map_comap_of_surjective _ e.surjective P).symm
-  apply (config := {allowSynthFailures := true }) LinearEquiv.mk
-  case toLinearMap =>
-    apply (config := {allowSynthFailures := true }) LinearMap.mk
-    swap
-    · exact E.toLinearMap.toAddHom
-    · intro r x
-      show E (_ * _) = _ * (E x)
-      obtain ⟨r, rfl⟩ := Ideal.Quotient.mk_surjective r
-      simp only [Quotient.mk_comp_algebraMap, Quotient.lift_mk, _root_.map_mul, AlgEquiv.commutes,
-        RingHomCompTriple.comp_apply]
-  exact E.left_inv
-  exact E.right_inv
+-- Mathlib.NumberTheory.RamificationInertia.Basic
+-- lemma Ideal.inertiaDeg_comap_eq (e : S₁ ≃ₐ[R] S₂) (p : Ideal R) (P : Ideal S₂) [p.IsMaximal] :
+--     Ideal.inertiaDeg (algebraMap R S₁) p (P.comap e) =
+--       Ideal.inertiaDeg (algebraMap R S₂) p P := by
+--   delta Ideal.inertiaDeg
+--   have : (P.comap e).comap (algebraMap R S₁) = p ↔ P.comap (algebraMap R S₂) = p := by
+--     rw [← Ideal.comap_coe e, Ideal.comap_comap, ← e.toAlgHom_toRingHom, AlgHom.comp_algebraMap]
+--   split
+--   swap
+--   · rw [dif_neg]; rwa [← this]
+--   rw [dif_pos (this.mp ‹_›)]
+--   apply (config := { allowSynthFailures := true }) LinearEquiv.finrank_eq
+--   have E := quotientEquivAlg (R₁ := R) (P.comap e) P e
+--     (Ideal.map_comap_of_surjective _ e.surjective P).symm
+--   apply (config := {allowSynthFailures := true }) LinearEquiv.mk
+--   case toLinearMap =>
+--     apply (config := {allowSynthFailures := true }) LinearMap.mk
+--     swap
+--     · exact E.toLinearMap.toAddHom
+--     · intro r x
+--       show E (_ * _) = _ * (E x)
+--       obtain ⟨r, rfl⟩ := Ideal.Quotient.mk_surjective r
+--       simp only [Quotient.mk_comp_algebraMap, Quotient.lift_mk, _root_.map_mul, AlgEquiv.commutes,
+--         RingHomCompTriple.comp_apply]
+--   exact E.left_inv
+--   exact E.right_inv
 
 end RamificationInertia
 
@@ -71,23 +75,24 @@ open nonZeroDivisors
 
 -- Mathlib/RingTheory/IntegralClosure.lean
 -- or Mathlib/RingTheory/LocalProperties.lean
-lemma isIntegrallyClosed_of_isLocalization {R} [CommRing R] [IsIntegrallyClosed R] [IsDomain R]
-    (M : Submonoid R) (hM : M ≤ R⁰) (S) [CommRing S] [Algebra R S] [IsLocalization M S] :
-    IsIntegrallyClosed S := by
-  let K := FractionRing R
-  let g : S →+* K := IsLocalization.map _ (T := R⁰) (RingHom.id R) hM
-  letI := g.toAlgebra
-  have : IsScalarTower R S K := IsScalarTower.of_algebraMap_eq'
-    (by rw [RingHom.algebraMap_toAlgebra, IsLocalization.map_comp, RingHomCompTriple.comp_eq])
-  have := IsFractionRing.isFractionRing_of_isDomain_of_isLocalization M S K
-  refine (isIntegrallyClosed_iff_isIntegralClosure (K := K)).mpr
-    ⟨IsFractionRing.injective _ _, fun {x} ↦ ⟨?_, fun e ↦ e.choose_spec ▸ isIntegral_algebraMap⟩⟩
-  intro hx
-  obtain ⟨⟨y, y_mem⟩, hy⟩ := hx.exists_multiple_integral_of_isLocalization M _
-  obtain ⟨z, hz⟩ := (isIntegrallyClosed_iff _).mp ‹_› hy
-  refine ⟨IsLocalization.mk' S z ⟨y, y_mem⟩, (IsLocalization.lift_mk'_spec _ _ _ _).mpr ?_⟩
-  rw [RingHom.comp_id, hz, ← Algebra.smul_def]
-  rfl
+-- Mathlib.RingTheory.IntegralClosure.IntegrallyClosed
+-- lemma isIntegrallyClosed_of_isLocalization {R} [CommRing R] [IsIntegrallyClosed R] [IsDomain R]
+--     (M : Submonoid R) (hM : M ≤ R⁰) (S) [CommRing S] [Algebra R S] [IsLocalization M S] :
+--     IsIntegrallyClosed S := by
+--   let K := FractionRing R
+--   let g : S →+* K := IsLocalization.map _ (T := R⁰) (RingHom.id R) hM
+--   letI := g.toAlgebra
+--   have : IsScalarTower R S K := IsScalarTower.of_algebraMap_eq'
+--     (by rw [RingHom.algebraMap_toAlgebra, IsLocalization.map_comp, RingHomCompTriple.comp_eq])
+--   have := IsFractionRing.isFractionRing_of_isDomain_of_isLocalization M S K
+--   refine (isIntegrallyClosed_iff_isIntegralClosure (K := K)).mpr
+--     ⟨IsFractionRing.injective _ _, fun {x} ↦ ⟨?_, fun e ↦ e.choose_spec ▸ isIntegral_algebraMap⟩⟩
+--   intro hx
+--   obtain ⟨⟨y, y_mem⟩, hy⟩ := hx.exists_multiple_integral_of_isLocalization M _
+--   obtain ⟨z, hz⟩ := (isIntegrallyClosed_iff _).mp ‹_› hy
+--   refine ⟨IsLocalization.mk' S z ⟨y, y_mem⟩, (IsLocalization.lift_mk'_spec _ _ _ _).mpr ?_⟩
+--   rw [RingHom.comp_id, hz, ← Algebra.smul_def]
+--   rfl
 
 -- -- Mathlib/RingTheory/LocalProperties.lean
 -- open Polynomial nonZeroDivisors in
@@ -187,13 +192,14 @@ lemma Algebra.isNilpotent_trace_of_isNilpotent {R : Type u} {S : Type v} [CommRi
     exact IsNilpotent.zero
 
 -- Mathlib/LinearAlgebra/Dimension.lean
-lemma FiniteDimensional.finrank_le_of_span_eq_top
-    {R M} [Ring R] [StrongRankCondition R] [AddCommGroup M] [Module R M]
-    [Module.Free R M] {ι} [Fintype ι] (v : ι → M) (hv : Submodule.span R (Set.range v) = ⊤) :
-    finrank R M ≤ Fintype.card ι := by
-  classical
-  rw [← finrank_top, ← hv]
-  exact (finrank_span_le_card _).trans (by convert Fintype.card_range_le v; rw [Set.toFinset_card])
+-- Mathlib.LinearAlgebra.Dimension.Constructions
+-- lemma FiniteDimensional.finrank_le_of_span_eq_top
+--     {R M} [Ring R] [StrongRankCondition R] [AddCommGroup M] [Module R M]
+--     [Module.Free R M] {ι} [Fintype ι] (v : ι → M) (hv : Submodule.span R (Set.range v) = ⊤) :
+--     finrank R M ≤ Fintype.card ι := by
+--   classical
+--   rw [← finrank_top, ← hv]
+--   exact (finrank_span_le_card _).trans (by convert Fintype.card_range_le v; rw [Set.toFinset_card])
 
 -- Mathlib/Data/Polynomial/Taylor.lean
 @[simps] noncomputable
@@ -206,10 +212,10 @@ def Polynomial.taylorAlgEquiv {R} [CommRing R] (r : R) : R[X] ≃ₐ[R] R[X] whe
 -- Mathlib/Data/Polynomial/Taylor.lean
 lemma Polynomial.irreducible_taylor_iff {R} [CommRing R] {r} {p : R[X]} :
     Irreducible (taylor r p) ↔ Irreducible p := by
-  refine ⟨fun H ↦ of_irreducible_map (taylorAlgEquiv r).toRingEquiv H, fun H ↦ ?_⟩
-  apply of_irreducible_map ((taylorAlgEquiv r).symm.toRingEquiv : R[X] →+* R[X])
+  refine ⟨fun H ↦ (MulEquiv.irreducible_iff (taylorAlgEquiv r).toRingEquiv.toMulEquiv).mp H, fun H ↦ ?_⟩
+  apply (MulEquiv.irreducible_iff (taylorAlgEquiv r).toRingEquiv.toMulEquiv).mpr
   simpa only [AlgEquiv.toRingEquiv_eq_coe, RingHom.coe_coe, AlgEquiv.coe_ringEquiv,
-    taylorAlgEquiv_symm_apply, taylor_taylor, add_left_neg, taylor_zero', LinearMap.id_coe, id_eq]
+    taylorAlgEquiv_symm_apply, taylor_taylor, neg_add_cancel, taylor_zero', LinearMap.id_coe, id_eq]
 
 -- Mathlib/FieldTheory/Separable.lean
 -- Generalizes (and should follow) `Separable.map`
@@ -223,13 +229,14 @@ lemma Polynomial.separable_map' {R S} [Field R] [CommRing S] [Nontrivial S] (f :
   rwa [map_map, separable_map] at this
 
 -- Somewhere in polynomial.
-lemma Polynomial.dvd_C_mul_X_sub_one_pow_add_one
-    {R} [CommRing R] {p : ℕ} (hpri : p.Prime) (hp : p ≠ 2) (a r : R)
-    (h₁ : r ∣ a ^ p) (h₂ : r ∣ p * a) : C r ∣ (C a * X - 1) ^ p + 1 := by
-  rw [sub_eq_add_neg, add_pow_prime_eq hpri, (hpri.odd_of_ne_two hp).neg_pow, one_pow,
-    mul_pow, ← C.map_pow, add_comm, add_comm (_ * _), ← add_assoc, ← add_assoc,
-    add_right_neg, zero_add]
-  refine dvd_add (dvd_mul_of_dvd_left (_root_.map_dvd C h₁) _) ((_root_.map_dvd C h₂).trans ?_)
-  rw [map_mul, map_natCast]
-  exact mul_dvd_mul_left _ (Finset.dvd_sum (fun x hx ↦ dvd_mul_of_dvd_left
-    (dvd_mul_of_dvd_left (dvd_pow (dvd_mul_right _ _) (Finset.mem_Ioo.mp hx).1.ne.symm) _) _))
+-- Mathlib.RingTheory.Polynomial.Cyclotomic.Basic
+-- lemma Polynomial.dvd_C_mul_X_sub_one_pow_add_one
+--     {R} [CommRing R] {p : ℕ} (hpri : p.Prime) (hp : p ≠ 2) (a r : R)
+--     (h₁ : r ∣ a ^ p) (h₂ : r ∣ p * a) : C r ∣ (C a * X - 1) ^ p + 1 := by
+--   rw [sub_eq_add_neg, add_pow_prime_eq hpri, (hpri.odd_of_ne_two hp).neg_pow, one_pow,
+--     mul_pow, ← C.map_pow, add_comm, add_comm (_ * _), ← add_assoc, ← add_assoc,
+--     add_right_neg, zero_add]
+--   refine dvd_add (dvd_mul_of_dvd_left (_root_.map_dvd C h₁) _) ((_root_.map_dvd C h₂).trans ?_)
+--   rw [map_mul, map_natCast]
+--   exact mul_dvd_mul_left _ (Finset.dvd_sum (fun x hx ↦ dvd_mul_of_dvd_left
+--     (dvd_mul_of_dvd_left (dvd_pow (dvd_mul_right _ _) (Finset.mem_Ioo.mp hx).1.ne.symm) _) _))
