@@ -15,16 +15,16 @@ import FltRegular.NumberTheory.Cyclotomic.GaloisActionOnCyclo
 import FltRegular.NumberTheory.Cyclotomic.MoreLemmas
 import FltRegular.NumberTheory.Cyclotomic.UnitLemmas
 import FltRegular.NumberTheory.CyclotomicRing
-import FltRegular.NumberTheory.Different
+-- import FltRegular.NumberTheory.Different
 import FltRegular.NumberTheory.Finrank
-import FltRegular.NumberTheory.GaloisPrime
+-- import FltRegular.NumberTheory.GaloisPrime
 import FltRegular.NumberTheory.Hilbert90
 import FltRegular.NumberTheory.Hilbert92
 import FltRegular.NumberTheory.Hilbert94
 import FltRegular.NumberTheory.IdealNorm
 import FltRegular.NumberTheory.KummersLemma.Field
 import FltRegular.NumberTheory.KummersLemma.KummersLemma
-import FltRegular.NumberTheory.QuotientTrace
+-- import FltRegular.NumberTheory.QuotientTrace
 import FltRegular.NumberTheory.RegularPrimes
 import FltRegular.NumberTheory.SystemOfUnits
 import FltRegular.NumberTheory.Unramified

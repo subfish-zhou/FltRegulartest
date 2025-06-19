@@ -1,11 +1,5 @@
-import Mathlib.RingTheory.Polynomial.Eisenstein.IsIntegral
-import FltRegular.NumberTheory.Cyclotomic.GaloisActionOnCyclo
 import Mathlib.NumberTheory.Cyclotomic.Rat
-import FltRegular.NumberTheory.Cyclotomic.UnitLemmas
-import Mathlib.RingTheory.DedekindDomain.Ideal
-import FltRegular.NumberTheory.Cyclotomic.CyclotomicUnits
-import Mathlib.Algebra.CharP.Quotient
-
+import Mathlib.NumberTheory.NumberField.Norm
 universe u
 
 open FiniteDimensional Polynomial Algebra Nat Finset Fintype

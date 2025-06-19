@@ -17,21 +17,19 @@ import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
 
 variable {R S : Type*} [CommRing R] [CommRing S] [Algebra R S]
 
-attribute [local instance] FractionRing.liftAlgebra FractionRing.isScalarTower_liftAlgebra
+-- attribute [local instance] FractionRing.liftAlgebra FractionRing.isScalarTower_liftAlgebra
 
 open IsLocalRing FiniteDimensional Submodule Module
 
 section IsLocalRing
 
 variable [IsLocalRing R] [Module.Free R S] [Module.Finite R S]
-variable {p : Ideal R} [p.IsMaximal] [IsLocalRing R]
+variable {p : Ideal R} [p.IsMaximal]
 
 open IsLocalRing FiniteDimensional
 
 local notation "p" => maximalIdeal R
 local notation "pS" => Ideal.map (algebraMap R S) p
-
-variable [Module.Free R S] [Module.Finite R S]
 
 attribute [local instance] Ideal.Quotient.field
 
@@ -69,17 +67,25 @@ theorem finrank_quotient_map_of_localRing :
   have : Module.Finite (R ⧸ p) (S ⧸ pS) := Module.Finite.of_restrictScalars_finite R _ _
   apply le_antisymm
   · let b := Module.Free.chooseBasis R S
-    conv_rhs => rw [finrank_eq_card_chooseBasisIndex]
-    apply finrank_le_of_span_eq_top (IsScalarTower.toAlgHom R S (S ⧸ pS) ∘ b)
-    rw [Set.range_comp]
-    apply (quotient_span_eq_top_iff_span_eq_top_of_localRing _).mpr b.span_eq
+    -- Changed: finrank_le_of_span_eq_top API changed in newer Mathlib
+    -- The finrank inequality needs to be approached differently
+    have h : span (R ⧸ p) (Set.range (IsScalarTower.toAlgHom R S (S ⧸ pS) ∘ b)) = ⊤ := by
+      rw [Set.range_comp]
+      exact (quotient_span_eq_top_iff_span_eq_top_of_localRing _).mpr b.span_eq
+    -- Use finrank_le_of_span_eq_top from newer Mathlib
+    calc finrank (R ⧸ p) (S ⧸ pS) ≤ Fintype.card (Free.ChooseBasisIndex R S) := finrank_le_of_span_eq_top h
+    _ = finrank R S := (finrank_eq_card_chooseBasisIndex R S).symm
   · let b := Module.Free.chooseBasis (R ⧸ p) (S ⧸ pS)
     choose b' hb' using fun i ↦ Ideal.Quotient.mk_surjective (b i)
-    conv_rhs => rw [finrank_eq_card_chooseBasisIndex]
-    apply finrank_le_of_span_eq_top b'
-    apply (quotient_span_eq_top_iff_span_eq_top_of_localRing _).mp
-    rw [← Set.range_comp, show Ideal.Quotient.mk pS ∘ b' = ⇑b from funext hb']
-    exact b.span_eq
+    -- Changed: finrank_le_of_span_eq_top API changed in newer Mathlib
+    -- The finrank inequality needs to be approached differently  
+    have h : span R (Set.range b') = ⊤ := by
+      apply (quotient_span_eq_top_iff_span_eq_top_of_localRing _).mp
+      rw [← Set.range_comp, show Ideal.Quotient.mk pS ∘ b' = ⇑b from funext hb']
+      exact b.span_eq
+    -- Use finrank_le_of_span_eq_top from newer Mathlib  
+    calc finrank R S ≤ Fintype.card (Free.ChooseBasisIndex (R ⧸ p) (S ⧸ pS)) := finrank_le_of_span_eq_top h
+    _ = finrank (R ⧸ p) (S ⧸ pS) := (finrank_eq_card_chooseBasisIndex (R ⧸ p) (S ⧸ pS)).symm
 
 noncomputable
 def basisQuotientOfLocalRing {ι} [Fintype ι] (b : Basis ι R S) : Basis ι (R ⧸ p) (S ⧸ pS) :=
@@ -103,10 +109,13 @@ lemma basisQuotientOfLocalRing_repr {ι} [Fintype ι] (b : Basis ι R S) (x) (i)
   apply (basisQuotientOfLocalRing b).repr.symm.injective
   simp only [Finsupp.linearEquivFunOnFinite_symm_coe, LinearEquiv.symm_apply_apply,
     Basis.repr_symm_apply]
-  rw [Finsupp.total_eq_fintype_total_apply _ (R ⧸ p), Fintype.total_apply]
-  simp only [Function.comp_apply, basisQuotientOfLocalRing_apply,
+  -- Changed: Finsupp.total_eq_fintype_total_apply renamed/removed
+  rw [Finsupp.linearCombination_apply]
+  conv_rhs => rw [← Basis.sum_repr b x]
+  rw [← map_sum]
+  simp only [Finsupp.sum_fintype, Function.comp_apply, basisQuotientOfLocalRing_apply,
     Ideal.Quotient.mk_smul_mk_quotient_map_quotient, ← Algebra.smul_def]
-  rw [← map_sum, Basis.sum_repr b x]
+  rfl
 
 lemma Algebra.trace_quotient_mk (x : S) :
     Algebra.trace (R ⧸ p) (S ⧸ pS) (Ideal.Quotient.mk pS x) =
@@ -114,20 +123,20 @@ lemma Algebra.trace_quotient_mk (x : S) :
   classical
   let ι := Module.Free.ChooseBasisIndex R S
   let b : Basis ι R S := Module.Free.chooseBasis R S
-  rw [trace_eq_matrix_trace b, trace_eq_matrix_trace (basisQuotient b), AddMonoidHom.map_trace]
+  rw [trace_eq_matrix_trace b, trace_eq_matrix_trace (basisQuotientOfLocalRing b), AddMonoidHom.map_trace]
   congr 1
   ext i j
   simp only [leftMulMatrix_apply, coe_lmul_eq_mul, LinearMap.toMatrix_apply,
-    basisQuotient_apply, LinearMap.mul_apply', RingHom.toAddMonoidHom_eq_coe,
+    basisQuotientOfLocalRing_apply, LinearMap.mul_apply', RingHom.toAddMonoidHom_eq_coe,
     AddMonoidHom.mapMatrix_apply, AddMonoidHom.coe_coe, Matrix.map_apply, ← map_mul,
-    basisQuotient_repr]
+    basisQuotientOfLocalRing_repr]
 
 end IsLocalRing
 
 section IsDedekindDomain
 
-variable {R S} [CommRing R] [CommRing S] [Algebra R S] {p : Ideal R} [p.IsMaximal]
-variable {Rₚ Sₚ} [CommRing Rₚ] [CommRing Sₚ] [Algebra R Rₚ] [IsLocalization.AtPrime Rₚ p]
+variable {R S : Type*} [CommRing R] [CommRing S] [Algebra R S] {p : Ideal R} [p.IsMaximal]
+variable {Rₚ Sₚ : Type*} [CommRing Rₚ] [Algebra R Rₚ] [IsLocalization.AtPrime Rₚ p]
 variable [IsLocalRing Rₚ] [CommRing Sₚ] [Algebra S Sₚ] [Algebra R Sₚ] [Algebra Rₚ Sₚ]
 variable [IsLocalization (Algebra.algebraMapSubmonoid S p.primeCompl) Sₚ]
 variable [IsScalarTower R S Sₚ] [IsScalarTower R Rₚ Sₚ]
@@ -159,7 +168,7 @@ def equivQuotMaximalIdealOfIsLocalization : R ⧸ p ≃+* Rₚ ⧸ maximalIdeal 
     rw [mul_sub, IsLocalization.mul_mk'_eq_mk'_of_mul, IsLocalization.mk'_mul_cancel_left,
       ← map_mul, ← map_sub, ← Ideal.mem_comap, IsLocalization.AtPrime.comap_maximalIdeal Rₚ p,
       mul_left_comm,
-      ← Ideal.Quotient.eq_zero_iff_mem, map_sub, map_mul, map_mul, hs, mul_inv_cancel, mul_one,
+      ← Ideal.Quotient.eq_zero_iff_mem, map_sub, map_mul, map_mul, hs, mul_inv_cancel₀, mul_one,
       sub_self]
     rw [Ne, Ideal.Quotient.eq_zero_iff_mem]
     exact s.prop
@@ -192,7 +201,7 @@ lemma comap_map_eq_map_of_isLocalization_algebraMapSubmonoid :
     obtain ⟨β, hβ⟩ := Ideal.Quotient.mk_surjective (I := p) (Ideal.Quotient.mk p α)⁻¹
     refine ⟨β, β * α - 1, ?_, ?_⟩
     · rw [← Ideal.Quotient.eq_zero_iff_mem, map_sub, map_one,
-        map_mul, hβ, inv_mul_cancel, sub_self]
+        map_mul, hβ, inv_mul_cancel₀, sub_self]
       rwa [Ne, Ideal.Quotient.eq_zero_iff_mem]
     · rw [add_sub_cancel]
   have := Ideal.mul_mem_left _ (algebraMap _ _ β) hαx
@@ -223,7 +232,7 @@ def quotMapEquivQuotMapMaximalIdealOfIsLocalization : S ⧸ pS ≃+* Sₚ ⧸ pS
       obtain ⟨β, hβ⟩ := Ideal.Quotient.mk_surjective (I := p) (Ideal.Quotient.mk p α)⁻¹
       refine ⟨β, α * β - 1, ?_, ?_⟩
       · rw [← Ideal.Quotient.eq_zero_iff_mem, map_sub, map_one,
-          map_mul, hβ, mul_inv_cancel, sub_self]
+          map_mul, hβ, mul_inv_cancel₀, sub_self]
         rwa [Ne, Ideal.Quotient.eq_zero_iff_mem]
       · rw [add_sub_cancel]
     use β • x
@@ -285,11 +294,13 @@ lemma Algebra.trace_quotient_eq_of_isDedekindDomain
     obtain ⟨x, s, rfl⟩ := IsLocalization.mk'_surjective p.primeCompl x
     simp only [RingHom.algebraMap_toAlgebra, IsLocalization.map_mk', IsLocalization.mk'_eq_zero_iff,
       mul_eq_zero, Subtype.exists, exists_prop] at hx ⊢
-    obtain ⟨_, ⟨a, ha, rfl⟩, H⟩ := hx
+    rcases hx with ⟨y, ⟨a, ha, rfl⟩, H⟩
     simp only [(injective_iff_map_eq_zero' _).mp (NoZeroSMulDivisors.algebraMap_injective R S)] at H
     refine ⟨a, ha, H⟩
-  haveI : Module.Finite Rₚ Sₚ := Module.Finite_of_isLocalization R S _ _ p.primeCompl
-  haveI : IsIntegrallyClosed Sₚ := isIntegrallyClosed_of_isLocalization _ e _
+  haveI : Module.Finite Rₚ Sₚ := by
+    have : Module.Finite R Sₚ := inferInstance
+    exact Module.Finite.of_restrictScalars_finite R Rₚ Sₚ
+  haveI : IsIntegrallyClosed Sₚ := isIntegrallyClosed_of_isLocalization _ _ e
   have : IsPrincipalIdealRing Rₚ := by
     by_cases hp : p = ⊥
     · have : IsFractionRing R Rₚ := by

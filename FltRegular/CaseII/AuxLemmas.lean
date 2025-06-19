@@ -1,9 +1,11 @@
 import Mathlib.RingTheory.ClassGroup
 import Mathlib.NumberTheory.NumberField.Basic
+import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
 
 variable {K : Type*} {p : ℕ+} [Field K] [CharZero K]
 
-variable {ζ : K} (hζ : IsPrimitiveRoot ζ p)
+variable {ζ : K} (hζ : IsPrimitiveRoot ζ (p : ℕ))
 
 open scoped BigOperators nonZeroDivisors NumberField
 open Polynomial
@@ -15,27 +17,12 @@ instance [NumberField K] : CancelMonoidWithZero (Ideal (𝓞 K)) :=
 
 lemma WfDvdMonoid.multiplicity_finite {M : Type*} [CancelCommMonoidWithZero M] [WfDvdMonoid M]
     {x y : M} (hx : ¬ IsUnit x) (hy : y ≠ 0) :
-    multiplicity.Finite x y := by
-  by_contra h
-  rw [multiplicity.Finite, not_exists_not] at h
-  choose f hf using h
-  obtain ⟨_, ⟨n, rfl⟩, hn⟩ :=
-    (WfDvdMonoid.wellFounded_dvdNotUnit (α := M)).has_min (Set.range f) (Set.range_nonempty f)
-  apply hn _ ⟨n + 1, rfl⟩
-  constructor
-  · intro e
-    apply hy
-    rw [hf (n + 1), e, mul_zero]
-  · refine ⟨x, hx, ?_⟩
-    rw [mul_comm, ← (mul_right_injective₀ (a := x ^ (n + 1)) _).eq_iff]
-    · simp only [← mul_assoc, ← pow_succ, ← hf]
-    · intro e
-      apply hy
-      rw [hf n, e, zero_mul]
+    FiniteMultiplicity x y :=
+  FiniteMultiplicity.of_not_isUnit hx hy
 
 lemma WfDvdMonoid.multiplicity_finite_iff {M : Type*} [CancelCommMonoidWithZero M] [WfDvdMonoid M]
     {x y : M} :
-  multiplicity.Finite x y ↔ ¬IsUnit x ∧ y ≠ 0 := by
+  FiniteMultiplicity x y ↔ ¬IsUnit x ∧ y ≠ 0 := by
   constructor
   · rw [← not_imp_not, Ne, ← not_or, not_not]
     rintro (hx|hy)
@@ -124,7 +111,7 @@ theorem isPrincipal_of_isPrincipal_pow_of_Coprime'
   · rw [Izero, FractionalIdeal.coe_zero]
     exact bot_isPrincipal
   rw [← Ne, ← isUnit_iff_ne_zero] at Izero
-  show Submodule.IsPrincipal (Izero.unit' : FractionalIdeal A⁰ K)
+  show (↑(Izero.unit' : FractionalIdeal A⁰ K) : Submodule A K).IsPrincipal
   rw [← ClassGroup.mk_eq_one_iff, ← orderOf_eq_one_iff, ← Nat.dvd_one, ← H, Nat.dvd_gcd_iff]
   refine ⟨?_, orderOf_dvd_card⟩
   rw [orderOf_dvd_iff_pow_eq_one, ← map_pow, ClassGroup.mk_eq_one_iff]

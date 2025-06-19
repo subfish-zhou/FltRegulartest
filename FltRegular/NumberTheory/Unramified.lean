@@ -1,7 +1,7 @@
-import FltRegular.NumberTheory.GaloisPrime
 import Mathlib.NumberTheory.KummerDedekind
-import FltRegular.NumberTheory.Different
-import Mathlib.RingTheory.DedekindDomain.Ideal
+import Mathlib.RingTheory.DedekindDomain.Different
+import Mathlib.RingTheory.IntegralClosure.IntegralRestrict
+import Mathlib.NumberTheory.RamificationInertia.Basic
 /-!
 # Unramified extensions
 
@@ -18,7 +18,7 @@ import Mathlib.RingTheory.DedekindDomain.Ideal
   is separable for some ideal `p` of `R` (with `f` being the minpoly of `α` over `R`), then `S/R` is
   unramified at `p`.
 -/
-open BigOperators UniqueFactorizationMonoid
+open BigOperators UniqueFactorizationMonoid Ideal
 
 attribute [local instance] FractionRing.liftAlgebra FractionRing.isScalarTower_liftAlgebra
 
